@@ -1,4 +1,4 @@
-# My_Shell
+# CoreShell
 
 OS Shell which support standard commands and allows execution of concurrent processes  
 
