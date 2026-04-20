@@ -26,6 +26,10 @@ static PCB* ready_queue_peek(int index) {
     return readyQueue[index];
 }
 
+int ready_queue_has_work() {
+    return ready_queue_peek(0) != NULL;
+}
+
 void ready_queue_initialize() {
     for (size_t i = 0; i < QUEUE_LENGTH; ++i) {
         readyQueue[i] = (PCB*)malloc(sizeof(PCB));
@@ -121,13 +125,49 @@ void ready_queue_add_to_front(PCB *pPCB) {
     }
 }
 
-void terminate_task_in_queue_by_index(int i) {
-    readyQueue[i]->pc_offset = -1;
-    readyQueue[i]->pc_page = -1;
-    readyQueue[i]->PC = -1;
-    readyQueue[i]->pid = NULL;
-    readyQueue[i]->num_pages = -1;
-    for (int j = 0; j < 20; j++) readyQueue[i]->pageTable[j] = -1;
+int pcb_total_lines(PCB *pcb) {
+    if (pcb == NULL || pcb->PC == -1) return MAX_INT;
+
+    int total = 0;
+    char path[128] = "BackingStore/";
+    strcat(path, pcb->pid);
+
+    FILE *fp = fopen(path, "rt");
+    if (fp == NULL) return MAX_INT;
+
+    char buffer[1000];
+    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
+        total++;
+    }
+    fclose(fp);
+
+    return total;
+}
+
+void sort_ready_queue_by_job_length() {
+    for (int i = 0; i < QUEUE_LENGTH - 1; i++) {
+        if (readyQueue[i]->PC == -1) break;
+
+        for (int j = i + 1; j < QUEUE_LENGTH; j++) {
+            if (readyQueue[j]->PC == -1) continue;
+
+            if (pcb_total_lines(readyQueue[j]) < pcb_total_lines(readyQueue[i])) {
+                PCB temp = *readyQueue[i];
+                *readyQueue[i] = *readyQueue[j];
+                *readyQueue[j] = temp;
+            }
+        }
+    }
+}
+
+/*
+ * Simple AGING:
+ * - measure each job by total script length
+ * - move the shortest job toward the front before each time slice
+ * This is a practical approximation using your current PCB structure.
+ */
+void age_ready_queue() {
+    sort_ready_queue_by_job_length();
 }
 
 int countPages(FILE* fp) {
@@ -250,11 +290,17 @@ int myinit(const char *filename) {
 
     fp = fopen(backfile, "rt");
     if (fp == NULL) {
+        free(copyf1);
         return 11;
     }
 
     int numPages = countPages(fp);
     PCB* newPCB = makePCB(numPages, fileID);
+    if (newPCB == NULL) {
+        fclose(fp);
+        free(copyf1);
+        return 21;
+    }
 
     int frame = findFrame();
     int victimFrame = -1;
@@ -268,6 +314,7 @@ int myinit(const char *filename) {
     error_code = load_page_to_mem(fp, 0, frame, fileID);
     if (error_code != 0) {
         fclose(fp);
+        free(copyf1);
         return error_code;
     }
 
@@ -309,14 +356,25 @@ int scheduler(int policyNumber) {
 
     cpu_set_ip(-1);
 
-    if (policyNumber == 0 || policyNumber == 1) {
+    if (policyNumber == 0) {
         cpu_quanta_per_program = MAX_INT;
+    } else if (policyNumber == 1) {
+        cpu_quanta_per_program = MAX_INT;
+        sort_ready_queue_by_job_length();
+    } else if (policyNumber == 2) {
+        cpu_quanta_per_program = 2;
     } else if (policyNumber == 3) {
         cpu_quanta_per_program = 1;
+        age_ready_queue();
     }
 
-    // FCFS, SJF, RR, AGING handled with different quanta
-    while (ready_queue_peek(0) != NULL) {
+    while (ready_queue_has_work()) {
+        if (policyNumber == 1) {
+            sort_ready_queue_by_job_length();
+        } else if (policyNumber == 3) {
+            age_ready_queue();
+        }
+
         PCB *firstPCB = ready_queue_peek(0);
 
         load_PCB_TO_CPU(firstPCB->PC);
@@ -341,8 +399,6 @@ int scheduler(int policyNumber) {
             firstPCB->pc_offset = newOffset;
 
             if (policyNumber == 0 || policyNumber == 1) {
-                // should not normally reach here because quanta is huge,
-                // but keep safe behavior
                 PCB temp = ready_queue_pop(0, true);
                 ready_queue_add_to_end(&temp);
             } else {

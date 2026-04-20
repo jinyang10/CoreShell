@@ -17,4 +17,10 @@ void resolvePageFault(PCB* pcb);
 void updatePageTable(PCB* pcb, int pageNum, int frameNum, int victimFrame);
 PCB* getFrameOwner(int frameNum);
 
+/* scheduling helpers */
+int pcb_total_lines(PCB *pcb);
+void sort_ready_queue_by_job_length();
+void age_ready_queue();
+int ready_queue_has_work();
+
 #endif
