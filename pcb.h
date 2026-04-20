@@ -2,22 +2,23 @@
 #define PCB_H
 
 /*
- * Struct:  PCB 
- * --------------------
- * pid: process(task) id
- * PC: program counter, stores the line that the task is executing
- * start: the first line in shell memory that belongs to this task
- * end: the last line in shell memory that belongs to this task
- * job_length_score: for EXEC AGING use only, stores the job length score
+ * pid: process id / backing-store file ID
+ * PC: current frame number
+ * pageTable[page] = frame number, or -1 if not loaded
+ * pc_page: current page index
+ * pc_offset: current line offset inside current frame
+ * num_pages: total number of pages in the program
  */
-typedef struct
-{
+typedef struct {
     char* pid;
     int PC;
-    int start;
-    int end;
-    int job_length_score;
-}PCB;
+    int pageTable[20];
+    int pc_page;
+    int pc_offset;
+    int num_pages;
+} PCB;
 
-PCB * makePCB(int start, int end, char* pid);
+PCB* makePCB(int numPages, char* pid);
+int isFrameOfPCB(PCB* pcb, int frameNum);
+
 #endif
