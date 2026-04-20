@@ -1,34 +1,178 @@
-# CoreShell
+# 🖥️ CoreShell — OS-Inspired Shell with Paging & Scheduling (C)
 
-OS Shell which support standard commands and allows execution of concurrent processes  
+A custom command-line shell written in C that simulates core operating system concepts including **process scheduling, paging, memory management, and page replacement**.
 
-set command: supports up to 5 alphanumeric tokens as the STRING variable  
-example execution: $ set x 20 bob alice toto xyz  
-$ print x  
-$ 20 bob alic toto xyz  
-  
-print command: print VAR  
-run command: run SCRIPT  
-echo command: simplified version that takes only one token string as input
-example execution: $ echo $mary
-   
-example execution: set mary 123  
-echo $mary    
-123  
-$  
-  
-my_ls command: lists all the files present in the current directory  
-- if the current directory contains other directories, only displays the name (not contents) of the directory  
-- the file/directory names are shown in alphabetical order  
+---
 
-one - liners are supported, where multiple commands can be accepted separated by semicolons  
-example execution:  $ set x abc; set y 123; print y; print x;  
-123  
-abc  
-$  
+## 🚀 Features
 
-exec command: accepts up to 3 files as arguments (scripts), and a 4th argument which is a string representing the scheduling policy:    
-exec prog1 prog2 prog3 POLICY  
-where POLICY is always the last parameter of exec, and takes the values FCFS, SJF, RR, or AGING  
-executes up to 3 scripts concurrently given a scheduling policy POLICY  
+### 🧠 Command Interpreter
 
+Supports the following commands:
+
+* `help`
+* `quit`
+* `set VAR STRING`
+* `print VAR`
+* `run SCRIPT.TXT`
+* `exec p1 [p2] [p3] POLICY`
+* `my_ls`
+* `echo STRING | $VAR`
+
+---
+
+### 🔁 Process Scheduling
+
+Implements multiple scheduling algorithms:
+
+* **FCFS (First Come First Serve)**
+* **RR (Round Robin, quantum = 2)**
+* **SJF (Shortest Job First)**
+* **AGING (priority improvement over time)**
+
+---
+
+### 📄 Paging System
+
+* Programs are divided into **pages of 3 lines**
+* Pages are loaded into a **frame store**
+* Each process maintains a **page table**
+* Supports:
+
+  * Page faults
+  * Page replacement (victim selection)
+  * Lazy loading
+
+---
+
+### 💾 Memory Management
+
+* **Frame Store** (simulated physical memory)
+* **Variable Store** (key-value shell memory)
+* Configurable sizes:
+
+  * Example: `Frame Store Size = 21`, `Variable Store Size = 10`
+
+---
+
+### ⚠️ Page Fault Handling
+
+When memory is full and a new page must be loaded:
+
+```text
+Page fault! Victim page contents:
+<old page contents>
+End of victim page contents.
+```
+
+---
+
+### 📂 File System Interaction
+
+* `my_ls` → lists files in current directory (via system call)
+* Programs are copied into a simulated disk directory:
+
+```text
+BackingStore/
+```
+
+---
+
+## 🧱 Project Structure
+
+```text
+CoreShell/
+│
+├── shell.c            # Main shell loop
+├── interpreter.c      # Command parsing & execution
+├── kernel.c           # Scheduler + paging logic
+├── pcb.c              # Process Control Block
+├── cpu.c              # CPU simulation
+├── shellmemory.c      # Memory (frames + variables)
+│
+├── *.h                # Header files
+├── Makefile           # Build config
+│
+├── prog1 ... prog12   # Test programs
+├── tc1 ... tc5        # Test cases
+└── BackingStore/      # Simulated disk (runtime)
+```
+
+---
+
+## ⚙️ Build & Run
+
+### 🔧 Compile
+
+```bash
+make
+```
+
+### ▶️ Run shell
+
+```bash
+./mysh
+```
+
+---
+
+## 🧪 Testing
+
+### Run test cases
+
+```bash
+./mysh < tc1
+./mysh < tc2
+./mysh < tc3
+./mysh < tc4
+./mysh < tc5
+```
+
+### Compare output
+
+```bash
+./mysh < tc3 > output.txt
+diff output.txt tc3_result
+```
+
+---
+
+## 🧠 Key Concepts Demonstrated
+
+* Virtual Memory (paging, page tables)
+* Page Replacement (victim selection)
+* CPU Scheduling algorithms
+* Process lifecycle management (PCB)
+* Memory abstraction & simulation
+* System-level programming in C
+
+---
+
+## ⚠️ Notes
+
+* Designed for educational purposes (Operating Systems simulation)
+* Behavior depends on environment (requires Unix-like commands for `cp`, `rm`, `ls`)
+* Works best in **MSYS2 / Git Bash / Linux**
+
+---
+
+## 🛠️ Future Improvements
+
+* More realistic AGING implementation
+* Improved page replacement strategies (LRU, FIFO)
+* Dynamic memory resizing
+* Cross-platform filesystem support
+* Better error handling
+
+---
+
+## 👤 Author
+
+**Jin Yang**
+Computer Engineering @ York University
+
+---
+
+## 📜 License
+
+This project is for educational use.
