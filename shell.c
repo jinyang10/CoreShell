@@ -4,8 +4,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
+#include <direct.h>
 
 #include "interpreter.h"
 #include "shellmemory.h"
@@ -28,11 +27,11 @@ int main(int argc, char *argv[]) {
     printf("Frame Store Size = %d; Variable Store Size = %d\n", frameSize, varMemSize);
 
     errno = 0;
-    int ret = mkdir("BackingStore", S_IRWXU);
-    if (ret == -1 && errno == EEXIST) {
-        system("rm -rf BackingStore");
-        mkdir("BackingStore", S_IRWXU);
-    }
+	int ret = mkdir("BackingStore");
+	if (ret == -1 && errno == EEXIST) {
+    	system("rm -rf BackingStore");
+    	mkdir("BackingStore");
+	}
 
     for (int i = 0; i < MAX_USER_INPUT; i++) {
         userInput[i] = '\0';
