@@ -52,7 +52,7 @@ int interpreter(char* command_args[], int args_size){
         for (int i = 2; i < args_size; i++) {
             strncat(value, command_args[i], 30);
             if (i < args_size - 1) {
-                strncat(value, " ", 1);
+                strcat(value, " ");
             }
         }
         int rc = set(command_args[1], value);
@@ -92,12 +92,15 @@ int interpreter(char* command_args[], int args_size){
 
 int help(){
     char help_string[] =
-        "COMMAND                 DESCRIPTION\n"
-        "help                    Displays all the commands\n"
-        "quit                    Exits / terminates the shell with \"Bye!\"\n"
-        "set VAR STRING          Assigns a value to shell memory\n"
-        "print VAR               Displays the STRING assigned to VAR\n"
-        "run SCRIPT.TXT          Executes the file SCRIPT.TXT\n";
+        "COMMAND                            DESCRIPTION\n"
+        "help                               Displays all the commands\n"
+        "quit                               Exits / terminates the shell with \"Bye!\"\n"
+        "set VAR STRING                     Assigns a value to shell memory\n"
+        "print VAR                          Displays the STRING assigned to VAR\n"
+        "run SCRIPT.TXT                     Executes the file SCRIPT.TXT\n"
+        "exec p1 [p2] [p3] POLICY           Executes 1-3 programs using FCFS, SJF, RR, or AGING\n"
+        "my_ls                              Lists files in the current directory\n"
+        "echo STRING | $VAR                 Displays a string or variable value\n";
 
     printf("%s\n", help_string);
     return 0;
@@ -169,7 +172,7 @@ int print(char* var){
 
 int run(char* script){
     int errCode = myinit(script);
-    if (errCode == 11) {
+    if (errCode != 0) {
         return handleError(errCode);
     }
 
@@ -177,7 +180,18 @@ int run(char* script){
     return errCode;
 }
 
+static int same_file_name(char *f1, char *f2) {
+    if (f1 == NULL || f2 == NULL) return 0;
+    return strcmp(f1, f2) == 0;
+}
+
 int exec(char *fname1, char *fname2, char *fname3, char* policy){
+    if (same_file_name(fname1, fname2) ||
+        same_file_name(fname1, fname3) ||
+        same_file_name(fname2, fname3)) {
+        return badcommand_same_file_name();
+    }
+
     system("rm -rf BackingStore");
     system("mkdir BackingStore");
 
