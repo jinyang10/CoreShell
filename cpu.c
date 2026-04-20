@@ -4,69 +4,79 @@
 #include "shell.h"
 #include "shellmemory.h"
 
-#include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <string.h>
 
 /*
- * Struct:  CPU 
- * --------------------
- * IP: serve as a pointer to shell memory. Ex. IP = 101 means CPU is executing the 101th line in shellmemory
- * IR: stores the line of code that CPU is executing
- * quanta: how many lines of code could the current task run until it finishes or being switched to another task
+ * IP: current frame number
+ * offset: current line offset within the frame (0,1,2)
+ * IR: current instruction
+ * quanta: max number of lines to run this turn
  */
-struct CPU
-{
+struct CPU {
     int IP;
+    int offset;
     char IR[1000];
     int quanta;
 };
-struct CPU aCPU = {.quanta =0};
 
-int cpu_get_ip(){
+static struct CPU aCPU = { .IP = -1, .offset = 0, .quanta = 0 };
+
+int cpu_get_ip() {
     return aCPU.IP;
 }
 
-void cpu_set_ip(int pIP){
+int cpu_get_offset() {
+    return aCPU.offset;
+}
+
+void cpu_set_ip(int pIP) {
     aCPU.IP = pIP;
 }
 
-void cpu_empty(){
-    aCPU.quanta = 2;
+void cpu_set_offset(int offset) {
+    aCPU.offset = offset;
 }
 
-void load_PCB_TO_CPU(int PC){
+void cpu_empty() {
+    aCPU.IP = -1;
+    aCPU.offset = 0;
+    aCPU.quanta = 0;
+    aCPU.IR[0] = '\0';
+}
+
+void load_PCB_TO_CPU(int PC) {
     cpu_set_ip(PC);
 }
 
 /*
- * Function:  cpu_run 
- * 	Added in A2
- * --------------------
- * run "quanta"(first input parameter) lines of code, starting from the cpu.IP
- *
- * quanta: number of lines that the CPU will run before it switches task or the task ends
- * end: the last line of the task in shell memory
- * returns: error code, 2: file reaches an end, 0: no error
+ * Runs up to quanta lines starting from (IP, offset).
+ * Returns:
+ *   0 = time slice finished normally
+ *   2 = reached end of current page/frame
  */
-int cpu_run(int quanta, int end){
+int cpu_run(int quanta) {
     aCPU.quanta = quanta;
-    int error_code;
-    while (aCPU.quanta != 0){
-        
-        strncpy(aCPU.IR, mem_get_value_by_line(aCPU.IP),1000);
-        parseInput(aCPU.IR);
-        if(end == aCPU.IP){
-            error_code = 2;
-            return error_code;
+
+    for (int i = 0; i < quanta; i++) {
+        int frame = aCPU.IP;
+        int line = aCPU.offset;
+
+        if (checkFrame(frame, line) == 0) {
+            return 2;
         }
-        aCPU.IP = aCPU.IP + 1;
-        aCPU.quanta -= 1;
+
+        strcpy(aCPU.IR, getFrameLine(frame, line));
+        parseInput(aCPU.IR);
+
+        aCPU.offset++;
+
+        if (aCPU.offset == 3) {
+            return 2;
+        }
     }
-    
-    error_code = 0;
-    return error_code;
+
+    return 0;
 }
