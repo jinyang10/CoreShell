@@ -1,3 +1,5 @@
+![CoreShell](coreshell.jpg)
+
 # 🖥️ CoreShell — OS-Inspired Shell with Paging & Scheduling (C)
 
 A custom command-line shell written in C that simulates core operating system concepts including **process scheduling, paging, memory management, and page replacement**.
